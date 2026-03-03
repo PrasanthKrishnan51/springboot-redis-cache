@@ -1,9 +1,12 @@
 package com.pk.cache.controller;
 
-import com.pk.cache.dto.ProductDto;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pk.cache.dto.CreateRequest;
+import com.pk.cache.dto.ProductListResponse;
+import com.pk.cache.dto.ProductResponse;
 import com.pk.cache.exception.ProductException;
 import com.pk.cache.service.ProductService;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,11 +19,15 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.List;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ProductController.class)
 @DisplayName("ProductController Integration Tests")
@@ -30,8 +37,8 @@ class ProductControllerTest {
     @Autowired ObjectMapper objectMapper;
     @MockBean  ProductService productService;
 
-    private ProductDto.Response sampleResponse() {
-        return new ProductDto.Response(
+    private ProductResponse sampleResponse() {
+        return new ProductResponse(
                 "id1", "Wireless Mouse", "Ergonomic wireless mouse",
                 "SKU-001", 29.99, "Electronics", 50,
                 Instant.now(), Instant.now()
@@ -45,7 +52,7 @@ class ProductControllerTest {
         @Test
         @DisplayName("returns 200 with list of products")
         void getAllProducts() throws Exception {
-            when(productService.getAllProducts()).thenReturn(List.of(sampleResponse()));
+            when(productService.getAllProducts()).thenReturn(new ProductListResponse((List<ProductResponse>) sampleResponse()));
 
             mockMvc.perform(get("/api/v1/products"))
                     .andExpect(status().isOk())
@@ -87,7 +94,7 @@ class ProductControllerTest {
         @Test
         @DisplayName("returns 201 on valid create request")
         void created() throws Exception {
-            var req = new ProductDto.CreateRequest(
+            var req = new CreateRequest(
                     "Wireless Mouse", "Ergonomic wireless mouse",
                     "SKU-001", 29.99, "Electronics", 50);
 
@@ -103,7 +110,7 @@ class ProductControllerTest {
         @Test
         @DisplayName("returns 400 when request body is invalid")
         void validationFail() throws Exception {
-            var bad = new ProductDto.CreateRequest("", null, "", -1.0, "", -5);
+            var bad = new CreateRequest("", null, "", -1.0, "", -5);
 
             mockMvc.perform(post("/api/v1/products")
                             .contentType(MediaType.APPLICATION_JSON)

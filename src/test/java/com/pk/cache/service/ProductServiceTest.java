@@ -1,6 +1,8 @@
 package com.pk.cache.service;
 
-import com.pk.cache.dto.ProductDto;
+import com.pk.cache.dto.CreateRequest;
+import com.pk.cache.dto.ProductListResponse;
+import com.pk.cache.dto.ProductResponse;
 import com.pk.cache.exception.ProductException;
 import com.pk.cache.model.Product;
 import com.pk.cache.repository.ProductRepository;
@@ -16,9 +18,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("ProductService Unit Tests")
@@ -51,10 +56,9 @@ class ProductServiceTest {
         void returnsAllProducts() {
             when(productRepository.findAll()).thenReturn(List.of(sampleProduct));
 
-            List<ProductDto.Response> result = productService.getAllProducts();
+            ProductListResponse result = productService.getAllProducts();
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).name()).isEqualTo("Wireless Mouse");
+            assertThat(result.getProducts().getFirst().getName()).isEqualTo("Wireless Mouse");
             verify(productRepository).findAll();
         }
 
@@ -62,7 +66,7 @@ class ProductServiceTest {
         @DisplayName("returns empty list when repository is empty")
         void returnsEmptyList() {
             when(productRepository.findAll()).thenReturn(List.of());
-            assertThat(productService.getAllProducts()).isEmpty();
+            assertThat(productService.getAllProducts()).asList();
         }
     }
 
@@ -74,9 +78,9 @@ class ProductServiceTest {
         @DisplayName("returns DTO when product exists")
         void found() {
             when(productRepository.findById("abc123")).thenReturn(Optional.of(sampleProduct));
-            ProductDto.Response dto = productService.getProductById("abc123");
-            assertThat(dto.id()).isEqualTo("abc123");
-            assertThat(dto.sku()).isEqualTo("SKU-001");
+            ProductResponse dto = productService.getProductById("abc123");
+            assertThat(dto.getId()).isEqualTo("abc123");
+            assertThat(dto.getSku()).isEqualTo("SKU-001");
         }
 
         @Test
@@ -93,7 +97,7 @@ class ProductServiceTest {
     @DisplayName("createProduct()")
     class CreateProduct {
 
-        ProductDto.CreateRequest validRequest = new ProductDto.CreateRequest(
+        CreateRequest validRequest = new CreateRequest(
                 "Mechanical Keyboard",
                 "RGB backlit mechanical keyboard",
                 "SKU-002",
@@ -112,10 +116,10 @@ class ProductServiceTest {
                 return p;
             });
 
-            ProductDto.Response result = productService.createProduct(validRequest);
+            ProductResponse result = productService.createProduct(validRequest);
 
-            assertThat(result.name()).isEqualTo("Mechanical Keyboard");
-            assertThat(result.id()).isEqualTo("newId");
+            assertThat(result.getName()).isEqualTo("Mechanical Keyboard");
+            assertThat(result.getId()).isEqualTo("newId");
             verify(productRepository).save(any(Product.class));
         }
 
